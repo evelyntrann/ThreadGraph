@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 # import Session from sqlalchemy ORM for database connection
 # make sure that the application can read/ write data accordingly
 from db import get_db
-from models import RawEvent # import RawEvent model, which is Python class that represents the database table structure
+from models import RawEvent, Extraction # import RawEvent model, which is Python class that represents the database table structure
 from sqlalchemy.dialects.postgresql import insert
 from datetime import datetime, timezone
 from fastapi import HTTPException #import exception class for returning HTTP errors
@@ -79,3 +79,44 @@ def delete_event(
 
     return {"status": "deleted"} # return this if deletion is occurred
 
+@app.post("/context")
+def build_context(
+    request: dict, 
+    db: Session = Depends(get_db)
+):
+    query = request["query"]
+    rows = (
+        db.query(RawEvent, Extraction)
+        .join(Extraction, Extraction.event_id == RawEvent.id)
+        .order_by(RawEvent.occurred_at.desc()) # most recent to least recent
+        .limit(20)
+        .all()
+    )
+
+    facts = []
+    actions = []
+
+    for event, ext in rows:
+        if ext.data.get("is_promo"):
+            continue
+
+        facts.append({
+            "text": event.payload.get("snippet"),
+            "source": f"{event.source}:{event.source_id}",
+            "occurred_at": event.occurred_at,
+            "confidence": ext.confidence,
+        })
+
+        for a in ext.data.get("action_items", []):
+            actions.append({
+                "text": a,
+                "source": f"{event.source}:{event.source_id}",
+                "confidence": ext.confidence,
+            })
+
+    return {
+        "query": query,
+        "facts": facts,
+        "open_actions": actions,
+    }
+# at this point, we get: raw_event  →  extraction  →  context
