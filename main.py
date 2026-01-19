@@ -4,6 +4,7 @@ from db import get_db
 from models import RawEvent
 from sqlalchemy.dialects.postgresql import insert
 from datetime import datetime, timezone
+from fastapi import HTTPException
 
 from hashing import compute_content_hash
 
@@ -52,3 +53,25 @@ def get_recent_events(
 
         for e in events
     ]
+
+@app.delete("/admin/events/{source}/{source_id}")
+def delete_event(
+    source: str,
+    source_id: str,
+    db: Session = Depends(get_db)
+):
+    deleted = (
+        db.query(RawEvent)
+        .filter(
+            RawEvent.source == source,
+            RawEvent.source_id == source_id
+        )
+        .delete()
+    )
+
+    db.commit()
+
+    if deleted == 0:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    return {"status": "deleted"}
