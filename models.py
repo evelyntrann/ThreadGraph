@@ -1,5 +1,5 @@
 # models.py
-from sqlalchemy import Column, String, DateTime, JSON, LargeBinary, UniqueConstraint
+from sqlalchemy import Column, String, DateTime, JSON, LargeBinary, UniqueConstraint, ForeignKey, JSONB, Float
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
@@ -20,5 +20,20 @@ class RawEvent(Base):
     # Unique constraint on (source, source_id)
     __table_args__ = (
         UniqueConstraint('source', 'source_id', name='raw_event_source_source_id_key'),
+    )
+
+class Extraction(Base): 
+    __tablename__ = "extraction"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    event_id = Column(UUID(as_uuid=True), ForeignKey("raw_event.id"), nullable=False)
+    method = Column(String, nullable=False)
+    extracted_at = Column(DateTime(timezone=True))
+    confidence = Column(Float, nullable=False)
+    data = Column(JSONB, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("event_id", "method", name="uq_event_method"),
+
     )
 
