@@ -79,6 +79,8 @@ def delete_event(
 
     return {"status": "deleted"} # return this if deletion is occurred
 
+# context endpoint, this does not call any LLM, but it reads from raw_event + extraction
+# it returns the Context Pack like JSON
 @app.post("/context")
 def build_context(
     request: dict, 
@@ -87,7 +89,7 @@ def build_context(
     query = request["query"]
     rows = (
         db.query(RawEvent, Extraction)
-        .join(Extraction, Extraction.event_id == RawEvent.id)
+        .outerjoin(Extraction, Extraction.event_id == RawEvent.id)
         .order_by(RawEvent.occurred_at.desc()) # most recent to least recent
         .limit(20)
         .all()
@@ -97,6 +99,9 @@ def build_context(
     actions = []
 
     for event, ext in rows:
+        if ext is None: 
+            continue
+        
         if ext.data.get("is_promo"):
             continue
 

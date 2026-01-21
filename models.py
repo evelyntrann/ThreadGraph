@@ -1,5 +1,6 @@
 # models.py
-from sqlalchemy import Column, String, DateTime, JSON, LargeBinary, UniqueConstraint, ForeignKey, JSONB, Float
+from sqlalchemy import Column, String, DateTime, JSON, LargeBinary, UniqueConstraint, ForeignKey, Float
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
