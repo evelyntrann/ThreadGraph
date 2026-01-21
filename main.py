@@ -79,6 +79,38 @@ def delete_event(
 
     return {"status": "deleted"} # return this if deletion is occurred
 
+# create this endpoint for inserting test data
+@app.post("extraction")
+def create_extraction(
+    payload: dict, 
+    db: Session = Depends(get_db)
+):
+    event_id = payload["event_id"]
+
+    event = db.query(RawEvent).filter(RawEvent.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="RawEvent not found")
+    
+    stmt = insert(Extraction).values(
+        event_id=event_id,
+        method="rule",
+        extracted_at=datetime.now(tz=timezone.utc),
+        confidence=payload.get("confidence", 0.7),
+        data=payload["data"],
+    ).on_conflict_do_update(
+        constraint="uq_event_method",
+        set_={
+            "extracted_at": stmt.excluded.extracted_at,
+            "confidence": stmt.excluded.confidence,
+            "data": stmt.excluded.data,
+        }
+    )
+
+    db.execute(stmt)
+    db.commit()
+
+    return {"status" : "extraction update"}
+
 # context endpoint, this does not call any LLM, but it reads from raw_event + extraction
 # it returns the Context Pack like JSON
 @app.post("/context")
@@ -101,7 +133,7 @@ def build_context(
     for event, ext in rows:
         if ext is None: 
             continue
-        
+
         if ext.data.get("is_promo"):
             continue
 
@@ -125,3 +157,5 @@ def build_context(
         "open_actions": actions,
     }
 # at this point, we get: raw_event  →  extraction  →  context
+
+
