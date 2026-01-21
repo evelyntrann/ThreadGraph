@@ -48,6 +48,7 @@ def get_recent_events(
 
     return [
         {
+            "id": str(e.id), 
             "source": e.source,
             "source_id": e.source_id,
             "occurred_at": e.occurred_at,
@@ -80,7 +81,7 @@ def delete_event(
     return {"status": "deleted"} # return this if deletion is occurred
 
 # create this endpoint for inserting test data
-@app.post("extraction")
+@app.post("/admin/extraction")
 def create_extraction(
     payload: dict, 
     db: Session = Depends(get_db)
@@ -92,18 +93,11 @@ def create_extraction(
         raise HTTPException(status_code=404, detail="RawEvent not found")
     
     stmt = insert(Extraction).values(
-        event_id=event_id,
-        method="rule",
-        extracted_at=datetime.now(tz=timezone.utc),
-        confidence=payload.get("confidence", 0.7),
-        data=payload["data"],
-    ).on_conflict_do_update(
-        constraint="uq_event_method",
-        set_={
-            "extracted_at": stmt.excluded.extracted_at,
-            "confidence": stmt.excluded.confidence,
-            "data": stmt.excluded.data,
-        }
+    event_id=event_id,
+    method="rule",
+    extracted_at=datetime.now(tz=timezone.utc),
+    confidence=payload.get("confidence", 0.7),
+    data=payload["data"],
     )
 
     db.execute(stmt)
