@@ -48,6 +48,7 @@ def get_recent_events(
 
     return [
         {
+            "id": str(e.id), 
             "source": e.source,
             "source_id": e.source_id,
             "occurred_at": e.occurred_at,
@@ -79,6 +80,33 @@ def delete_event(
 
     return {"status": "deleted"} # return this if deletion is occurred
 
+# create this endpoint for inserting test data
+@app.post("/admin/extraction")
+def create_extraction(
+    payload: dict, 
+    db: Session = Depends(get_db)
+):
+    event_id = payload["event_id"]
+
+    event = db.query(RawEvent).filter(RawEvent.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="RawEvent not found")
+    
+    stmt = insert(Extraction).values(
+    event_id=event_id,
+    method="rule",
+    extracted_at=datetime.now(tz=timezone.utc),
+    confidence=payload.get("confidence", 0.7),
+    data=payload["data"],
+    )
+
+    db.execute(stmt)
+    db.commit()
+
+    return {"status" : "extraction update"}
+
+# context endpoint, this does not call any LLM, but it reads from raw_event + extraction
+# it returns the Context Pack like JSON
 @app.post("/context")
 def build_context(
     request: dict, 
@@ -87,7 +115,7 @@ def build_context(
     query = request["query"]
     rows = (
         db.query(RawEvent, Extraction)
-        .join(Extraction, Extraction.event_id == RawEvent.id)
+        .outerjoin(Extraction, Extraction.event_id == RawEvent.id)
         .order_by(RawEvent.occurred_at.desc()) # most recent to least recent
         .limit(20)
         .all()
@@ -97,6 +125,9 @@ def build_context(
     actions = []
 
     for event, ext in rows:
+        if ext is None: 
+            continue
+
         if ext.data.get("is_promo"):
             continue
 
@@ -120,3 +151,5 @@ def build_context(
         "open_actions": actions,
     }
 # at this point, we get: raw_event  →  extraction  →  context
+
+
