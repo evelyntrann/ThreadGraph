@@ -10,6 +10,8 @@ from fastapi import HTTPException #import exception class for returning HTTP err
 
 from hashing import compute_content_hash # unique custom class to create hashing 
 # this will prevents data duplication, ensure data quality
+from core.policy.policy import infer_query_intent, policy_for_intent
+from core.retrieval.retrieve import retrieve_candidates
 
 app = FastAPI()
 
@@ -108,34 +110,25 @@ def create_extraction(
 # context endpoint, this does not call any LLM, but it reads from raw_event + extraction
 # it returns the Context Pack like JSON
 @app.post("/context")
-def build_context(
-    request: dict, 
-    db: Session = Depends(get_db)
-):
-    query = request["query"]
-    rows = (
-        db.query(RawEvent, Extraction)
-        .outerjoin(Extraction, Extraction.event_id == RawEvent.id)
-        .order_by(RawEvent.occurred_at.desc()) # most recent to least recent
-        .limit(20)
-        .all()
-    )
+def build_context(request: dict, db: Session = Depends(get_db)):
+    query = request.get("query", "")
+    intent = infer_query_intent(query)
+    policy = policy_for_intent(intent)
+
+    rows = retrieve_candidates(db, policy)
 
     facts = []
     actions = []
+    dropped = {"promo": 0, "low_conf": 0}
 
     for event, ext in rows:
-        if ext is None: 
-            continue
-
-        if ext.data.get("is_promo"):
-            continue
-
+        # facts: minimal, grounded text
         facts.append({
-            "text": event.payload.get("snippet"),
+            "text": event.payload.get("snippet") or event.payload.get("subject"),
             "source": f"{event.source}:{event.source_id}",
             "occurred_at": event.occurred_at,
             "confidence": ext.confidence,
+            "intent": ext.data.get("intent"),
         })
 
         for a in ext.data.get("action_items", []):
@@ -147,9 +140,13 @@ def build_context(
 
     return {
         "query": query,
+        "intent": intent,
+        "policy": {
+            "max_days": policy.max_days,
+            "min_confidence": policy.min_confidence,
+            "allow_promo": policy.allow_promo,
+            "max_items": policy.max_items,
+        },
         "facts": facts,
         "open_actions": actions,
     }
-# at this point, we get: raw_event  →  extraction  →  context
-
-
