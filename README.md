@@ -195,6 +195,8 @@ Tightly coupled implementations force a rebuild when switching from OpenAI → G
 │    CLI • Browser Extension • Gmail Add-on • Custom UI            │
 └─────────────────────────────────────────────────────────────────┘
 
+```
+
 ## API Endpoints
 
 This service exposes **read-only user endpoints** and **admin/internal endpoints** used for ingestion, testing, and debugging.
@@ -233,4 +235,3 @@ This endpoint is intended for **inspection and debugging**, for example to verif
     }
   }
 ]
-    
