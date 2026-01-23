@@ -285,3 +285,43 @@ Response
   ]
 }
 ```
+## Data Model
+
+### raw_event
+Stores canonical facts of the world as received from upstream systems.
+
+- Immutable, append-only
+- Idempotent via `(source, source_id)`
+- No interpretation or intelligence applied
+
+### extraction
+Stores derived meaning for each canonical event.
+
+- Deterministic rule-based extraction
+- Separated from raw facts
+- Supports confidence scoring and policy enforcement
+
+## Context Construction Pipeline
+
+When a request is made to `/context`:
+
+1. The user query is analyzed to infer intent.
+2. Retrieval selects candidate events based on policy constraints.
+3. Promotional and low-confidence events are filtered.
+4. Structured facts and action items are assembled into a Context Pack.
+
+If no relevant data exists, an empty context is returned.
+
+## Running Locally
+
+### Prerequisites
+- Python 3.11+
+- PostgreSQL
+- Virtualenv
+
+### Setup
+```bash
+pip install -r requirements.txt
+psql threadgraph < schema.sql
+uvicorn main:app --reload
+
