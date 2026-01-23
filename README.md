@@ -1,5 +1,6 @@
 # Deterministic Context Control Plane for LLMs
 
+
 A **deterministic context system** that continuously ingests **Gmail + Calendar** data, normalizes signals, and enforces **policy + freshness + provenance** to return a **Context Pack** for any chat client (**Gemini / ChatGPT / Claude / custom UI**).
 
 > **Core principle:** The LLM is replaceable.  
@@ -8,6 +9,8 @@ A **deterministic context system** that continuously ingests **Gmail + Calendar*
 This is **not another RAG system** - it’s a **context control plane** that sits between your data sources and any LLM, ensuring assistants have **accurate, timely, policy-compliant context** for every interaction.
 
 ---
+<img width="720" height="508" alt="Screenshot 2026-01-23 at 12 16 27 AM" src="https://github.com/user-attachments/assets/0faf5a67-b84a-48aa-995f-c01dcc15502e" />
+
 
 ## I. What this product is
 
