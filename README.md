@@ -5,7 +5,7 @@ A **deterministic context system** that continuously ingests **Gmail + Calendar*
 > **Core principle:** The LLM is replaceable.  
 > This system controls **retrieval and grounding**.
 
-This is **not another RAG system** — it’s a **context control plane** that sits between your data sources and any LLM, ensuring assistants have **accurate, timely, policy-compliant context** for every interaction.
+This is **not another RAG system** - it’s a **context control plane** that sits between your data sources and any LLM, ensuring assistants have **accurate, timely, policy-compliant context** for every interaction.
 
 ---
 
