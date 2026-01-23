@@ -194,3 +194,134 @@ Tightly coupled implementations force a rebuild when switching from OpenAI → G
 │                         CLIENTS                                  │
 │    CLI • Browser Extension • Gmail Add-on • Custom UI            │
 └─────────────────────────────────────────────────────────────────┘
+
+```
+
+## API Endpoints
+
+This service exposes **read-only user endpoints** and **admin/internal endpoints** used for ingestion, testing, and debugging.
+
+The core design principle is:
+
+> Canonical facts are ingested once, meaning is derived deterministically, and context is assembled in a bounded, auditable way.
+
+---
+
+### User Endpoints
+
+#### `GET /events/recent`
+
+Retrieve recently ingested canonical events from the `raw_event` table.
+
+This endpoint is intended for **inspection and debugging**, for example to verify ingestion or to obtain internal event IDs used by downstream layers.
+
+**Query Parameters**
+- `limit` (optional, default: `10`): Maximum number of events to return.
+
+**Response**
+```json
+[
+  {
+    "id": "df42c998-a8d2-4eaf-8100-d53d86ab3e66",
+    "source": "gmail",
+    "source_id": "msg-001",
+    "occurred_at": "2026-01-14T13:02:00-08:00",
+    "payload": {
+      "subject": "Re: Interview availability",
+      "from": "cheryl@tcu.edu",
+      "to": "you@tcu.edu",
+      "snippet": "Are you available Tuesday or Thursday?",
+      "thread_id": "thread-123"
+    }
+  }
+]
+```
+---
+
+#### `POST /context`
+
+Build a **Context Pack** for a given user query.
+
+This is the **primary output endpoint** of the context pipeline.  
+It performs retrieval, policy filtering, and context assembly, but **never mutates state**.
+
+**Key Guarantees**
+- Uses only grounded facts from the database
+- Applies freshness, confidence, and promo filters
+- Returns bounded, explainable context
+- Empty context is valid; hallucinated facts are not
+
+**Request Body**
+
+```json
+{
+  "query": "Draft a reply to Cheryl confirming my schedule"
+}
+Response
+{
+  "query": "Draft a reply to Cheryl confirming my schedule",
+  "intent": "draft_reply",
+  "policy": {
+    "max_days": 14,
+    "min_confidence": 0.55,
+    "allow_promo": false,
+    "max_items": 20
+  },
+  "facts": [
+    {
+      "text": "Are you available Tuesday or Thursday?",
+      "source": "gmail:msg-001",
+      "occurred_at": "2026-01-14T13:02:00-08:00",
+      "confidence": 0.8,
+      "intent": "schedule"
+    }
+  ],
+  "open_actions": [
+    {
+      "text": "Respond with availability",
+      "source": "gmail:msg-001",
+      "confidence": 0.8
+    }
+  ]
+}
+```
+## Data Model
+
+### raw_event
+Stores canonical facts of the world as received from upstream systems.
+
+- Immutable, append-only
+- Idempotent via `(source, source_id)`
+- No interpretation or intelligence applied
+
+### extraction
+Stores derived meaning for each canonical event.
+
+- Deterministic rule-based extraction
+- Separated from raw facts
+- Supports confidence scoring and policy enforcement
+
+## Context Construction Pipeline
+
+When a request is made to `/context`:
+
+1. The user query is analyzed to infer intent.
+2. Retrieval selects candidate events based on policy constraints.
+3. Promotional and low-confidence events are filtered.
+4. Structured facts and action items are assembled into a Context Pack.
+
+If no relevant data exists, an empty context is returned.
+
+## Running Locally
+
+### Prerequisites
+- Python 3.11+
+- PostgreSQL
+- Virtualenv
+
+### Setup
+```bash
+pip install -r requirements.txt
+psql threadgraph < schema.sql
+uvicorn main:app --reload
+
