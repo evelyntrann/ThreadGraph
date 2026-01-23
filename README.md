@@ -235,3 +235,53 @@ This endpoint is intended for **inspection and debugging**, for example to verif
     }
   }
 ]
+```
+---
+
+#### `POST /context`
+
+Build a **Context Pack** for a given user query.
+
+This is the **primary output endpoint** of the context pipeline.  
+It performs retrieval, policy filtering, and context assembly, but **never mutates state**.
+
+**Key Guarantees**
+- Uses only grounded facts from the database
+- Applies freshness, confidence, and promo filters
+- Returns bounded, explainable context
+- Empty context is valid; hallucinated facts are not
+
+**Request Body**
+
+```json
+{
+  "query": "Draft a reply to Cheryl confirming my schedule"
+}
+Response
+{
+  "query": "Draft a reply to Cheryl confirming my schedule",
+  "intent": "draft_reply",
+  "policy": {
+    "max_days": 14,
+    "min_confidence": 0.55,
+    "allow_promo": false,
+    "max_items": 20
+  },
+  "facts": [
+    {
+      "text": "Are you available Tuesday or Thursday?",
+      "source": "gmail:msg-001",
+      "occurred_at": "2026-01-14T13:02:00-08:00",
+      "confidence": 0.8,
+      "intent": "schedule"
+    }
+  ],
+  "open_actions": [
+    {
+      "text": "Respond with availability",
+      "source": "gmail:msg-001",
+      "confidence": 0.8
+    }
+  ]
+}
+```
