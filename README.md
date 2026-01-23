@@ -194,3 +194,43 @@ Tightly coupled implementations force a rebuild when switching from OpenAI → G
 │                         CLIENTS                                  │
 │    CLI • Browser Extension • Gmail Add-on • Custom UI            │
 └─────────────────────────────────────────────────────────────────┘
+
+## API Endpoints
+
+This service exposes **read-only user endpoints** and **admin/internal endpoints** used for ingestion, testing, and debugging.
+
+The core design principle is:
+
+> Canonical facts are ingested once, meaning is derived deterministically, and context is assembled in a bounded, auditable way.
+
+---
+
+### User Endpoints
+
+#### `GET /events/recent`
+
+Retrieve recently ingested canonical events from the `raw_event` table.
+
+This endpoint is intended for **inspection and debugging**, for example to verify ingestion or to obtain internal event IDs used by downstream layers.
+
+**Query Parameters**
+- `limit` (optional, default: `10`): Maximum number of events to return.
+
+**Response**
+```json
+[
+  {
+    "id": "df42c998-a8d2-4eaf-8100-d53d86ab3e66",
+    "source": "gmail",
+    "source_id": "msg-001",
+    "occurred_at": "2026-01-14T13:02:00-08:00",
+    "payload": {
+      "subject": "Re: Interview availability",
+      "from": "cheryl@tcu.edu",
+      "to": "you@tcu.edu",
+      "snippet": "Are you available Tuesday or Thursday?",
+      "thread_id": "thread-123"
+    }
+  }
+]
+    
