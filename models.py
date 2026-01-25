@@ -3,6 +3,7 @@ from sqlalchemy import Column, String, DateTime, JSON, LargeBinary, UniqueConstr
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
+from pgvector.sqlalchemy import Vector
 
 from db import Base
 # canonical data model
@@ -37,4 +38,14 @@ class Extraction(Base):
         UniqueConstraint("event_id", "method", name="uq_event_method"),
 
     )
+
+class Embedding(Base):
+    __tablename__ = "embedding"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    object_type = Column(String, nullable=False)
+    object_id = Column(UUID(as_uuid=True), nullable=False)
+    model = Column(String, nullable=False)
+    vector = Column(Vector(1536), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
 

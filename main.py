@@ -150,3 +150,12 @@ def build_context(request: dict, db: Session = Depends(get_db)):
         "facts": facts,
         "open_actions": actions,
     }
+
+def build_embedding_text(event: RawEvent, extraction: Extraction) -> str:
+    parts = [
+        event.payload.get("subject", ""),
+        event.payload.get("snippet", ""),
+        extraction.data.get("intent", ""),
+        " ".join(extraction.data.get("action_items", []))
+    ]
+    return "\n".join(p for p in parts if p)

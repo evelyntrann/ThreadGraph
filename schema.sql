@@ -32,3 +32,18 @@ ON extraction(event_id);
 
 CREATE INDEX IF NOT EXISTS idx_extraction_data
 ON extraction USING GIN (data);
+
+CREATE TABLE IF NOT EXISTS embedding (
+  id UUI PRIMARY_KEY,
+  object_type TEXT NOT NULL,
+  object_id UUID NOT NULL,
+  model TEXT NOT NULL,
+  vector VECTOR(1536) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX idx_embedding_object
+ON embedding(object_type, object_id);
+
+CREATE INDEX idx_embedding_vector 
+ON embedding using ivfflat (vector vector_cosine_ops);
