@@ -1,4 +1,4 @@
-# Deterministic Context Control Plane for LLMs
+# Deterministic Context Control Plane for LLMs Requests
 
 
 A **deterministic context system** that continuously ingests **Gmail + Calendar** data, normalizes signals, and enforces **policy + freshness + provenance** to return a **Context Pack** for any chat client (**Gemini / ChatGPT / Claude / custom UI**).
